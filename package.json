@@ -1,0 +1,31 @@
+{
+  "name": "ai-chess-game",
+  "version": "1.0.0",
+  "description": "A fully-featured chess game with AI opponent for web and mobile browsers",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000 || python -m SimpleHTTPServer 8000",
+    "serve": "http-server -p 8080 -o",
+    "dev": "http-server -p 8000 -c-1"
+  },
+  "keywords": [
+    "chess",
+    "game",
+    "ai",
+    "stockfish",
+    "board-game",
+    "chess-engine"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "chess.js": "^0.10.3"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.0"
+  }
+}

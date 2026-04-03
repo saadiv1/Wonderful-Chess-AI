@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wonderful Chess</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-info">
+                <div class="header-spacer"></div>
+                <div class="header-center">
+                    <h1 class="title-brand">&#9820; Wonderful Chess &#9820;</h1>
+                    <div class="game-info header-game-info">
+                        <div class="turn-info">
+                            <span id="currentTurn">White to move</span>
+                            <span class="turn-indicator" id="turnIndicator">&#9679;</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="new-game-btn" id="newGameBtn">New Game</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="game-wrapper">
+                <div class="board-container">
+                    <div class="board-stage">
+                        <div class="board-layout">
+                            <div class="board-side board-side-left">
+                                <div class="clock-card side-card" id="blackClockCard">
+                                    <span class="clock-label" id="topClockLabel">Black</span>
+                                    <span class="clock-time" id="blackTimer">--:--</span>
+                                </div>
+                                <div class="clock-card side-card" id="whiteClockCard">
+                                    <span class="clock-label" id="bottomClockLabel">White</span>
+                                    <span class="clock-time" id="whiteTimer">--:--</span>
+                                </div>
+                            </div>
+                            <div class="board-main">
+                                <div class="board-shell" id="boardShell">
+                                    <div class="coordinates-row coordinates-top" id="coordinatesTop"></div>
+                                    <div class="coordinates-column coordinates-left" id="coordinatesLeft"></div>
+                                    <div class="chess-board" id="chessBoard"></div>
+                                    <div class="coordinates-column coordinates-right" id="coordinatesRight"></div>
+                                    <div class="coordinates-row coordinates-bottom" id="coordinatesBottom"></div>
+                                </div>
+                                <div class="clock-meta preview-inline" id="previewStatus" style="display: none;">Previewing move</div>
+                            </div>
+                            <div class="board-side board-side-right">
+                                <div class="captured-inline side-card">
+                                    <span class="captured-inline-label">Captured By Black</span>
+                                    <div id="whiteCaptured" class="pieces-display pieces-inline"></div>
+                                </div>
+                                <div class="captured-inline side-card">
+                                    <span class="captured-inline-label">Captured By White</span>
+                                    <div id="blackCaptured" class="pieces-display pieces-inline"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="game-sidebar">
+                    <div class="move-history">
+                        <h3>Move History</h3>
+                        <div class="moves-list" id="movesList">
+                            <p class="empty-message">Game hasn't started yet</p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-scroll">
+                        <div class="game-controls game-setup-panel">
+                            <h3>Game Setup</h3>
+                            <div class="setup-box">
+                                <div class="control-field">
+                                    <span>Play As</span>
+                                    <div class="option-grid option-grid-three" id="playerColorOptions">
+                                        <button class="option-btn" type="button" data-setting="playerColor" data-value="w">White</button>
+                                        <button class="option-btn" type="button" data-setting="playerColor" data-value="b">Black</button>
+                                        <button class="option-btn" type="button" data-setting="playerColor" data-value="random">Random</button>
+                                    </div>
+                                </div>
+                                <div class="control-field">
+                                    <span>Difficulty</span>
+                                    <div class="option-grid option-grid-four" id="difficultyOptions">
+                                        <button class="option-btn" type="button" data-setting="difficulty" data-value="easy">Easy</button>
+                                        <button class="option-btn" type="button" data-setting="difficulty" data-value="medium">Medium</button>
+                                        <button class="option-btn" type="button" data-setting="difficulty" data-value="hard">Hard</button>
+                                        <button class="option-btn" type="button" data-setting="difficulty" data-value="insane">Insane</button>
+                                    </div>
+                                </div>
+                                <div class="control-field">
+                                    <span>Timer</span>
+                                    <div class="timer-options" id="timeControlOptions">
+                                        <div class="option-grid option-grid-one">
+                                            <button class="option-btn" type="button" data-setting="timeControl" data-value="none">No Timer</button>
+                                        </div>
+                                        <div class="timer-group">
+                                            <span class="timer-group-label">Bullet</span>
+                                            <div class="option-grid option-grid-three">
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="1|0">1 min</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="1|1">1|1</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="2|1">2|1</button>
+                                            </div>
+                                        </div>
+                                        <div class="timer-group">
+                                            <span class="timer-group-label">Blitz</span>
+                                            <div class="option-grid option-grid-three">
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="3|2">3|2</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="5|0">5 min</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="5|5">5|5</button>
+                                            </div>
+                                        </div>
+                                        <div class="timer-group">
+                                            <span class="timer-group-label">Rapid</span>
+                                            <div class="option-grid option-grid-three">
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="10|0">10 min</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="15|10">15|10</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="30|0">30 min</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="10|5">10|5</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="20|0">20 min</button>
+                                                <button class="option-btn" type="button" data-setting="timeControl" data-value="60|0">60 min</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="game-controls settings-panel">
+                            <h3>Settings</h3>
+                            <div class="setup-box">
+                                <button id="themeToggleBtn" class="theme-toggle-btn" type="button">Dark Mode: Off</button>
+                                <label class="control-field" for="volumeSlider">
+                                    <span>Move Volume <strong id="volumeValue">60%</strong></span>
+                                    <input id="volumeSlider" class="volume-slider" type="range" min="0" max="100" step="1" value="60">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="game-controls game-info-panel">
+                            <h3>Game Info</h3>
+                            <div class="info-box">
+                                <p><strong>Difficulty:</strong> <span id="difficulty">Medium</span></p>
+                                <p><strong>Your Color:</strong> <span id="playerColor">White</span></p>
+                                <p><strong>Take Backs:</strong> <span id="undoCount">1 remaining</span></p>
+                                <p><strong>Timer:</strong> <span id="timeControlLabel">No Clock</span></p>
+                                <p id="aiThinking" style="display: none;" class="ai-thinking">AI is thinking...</p>
+                            </div>
+                            <div class="button-group">
+                                <button id="undoBtn" class="control-btn" disabled>&#8630; Undo</button>
+                                <button id="resetBtn" class="control-btn">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <p>Wonderful Chess powered by Stockfish</p>
+        </footer>
+    </div>
+
+    <div class="promotion-modal hidden" id="promotionModal" aria-hidden="true">
+        <div class="promotion-dialog">
+            <h3>Choose Promotion</h3>
+            <div class="promotion-options" id="promotionOptions"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/stockfish@11.0.0/dist/stockfish.wasm.js"></script>
+    <script src="config.js"></script>
+    <script src="chess-engine.js"></script>
+    <script src="ai.js"></script>
+    <script src="main.js"></script>
+    <script src="test-utilities.js"></script>
+</body>
+</html>
