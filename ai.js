@@ -6,6 +6,7 @@ class ChessAI {
         this.isReady = false;
         this.isThinking = false;
         this.bestMove = null;
+        this.workerReady = false;
     }
 
     // Initialize Stockfish
@@ -18,14 +19,32 @@ class ChessAI {
             });
 
             this.stockfish.postMessage('uci');
-            this.isReady = true;
-            resolve();
+
+            const readyCheck = setInterval(() => {
+                if (this.workerReady) {
+                    clearInterval(readyCheck);
+                    this.isReady = true;
+                    resolve();
+                }
+            }, 50);
+
+            setTimeout(() => {
+                if (!this.workerReady) {
+                    clearInterval(readyCheck);
+                    this.isReady = true;
+                    resolve();
+                }
+            }, 1500);
         });
     }
 
     // Handle messages from Stockfish
     onMessage(message) {
         if (message && typeof message === 'string') {
+            if (message.includes('uciok')) {
+                this.workerReady = true;
+            }
+
             if (message.includes('bestmove')) {
                 const match = message.match(/bestmove ([a-z0-9]+)/);
                 if (match) {
@@ -48,16 +67,28 @@ class ChessAI {
 
             // Adjust depth based on difficulty
             let searchDepth = depth;
+            let moveTimeMs = 1000;
+            let skillLevel = 10;
             if (typeof getConfig === 'function') {
                 searchDepth = getConfig(`difficulty.levels.${this.difficulty}`, depth);
+                moveTimeMs = getConfig(`difficulty.searchTimeMs.${this.difficulty}`, moveTimeMs);
+                skillLevel = getConfig(`difficulty.stockfishSkill.${this.difficulty}`, skillLevel);
             } else if (this.difficulty === 'easy') {
-                searchDepth = 6;
+                searchDepth = 8;
+                moveTimeMs = 350;
+                skillLevel = 6;
             } else if (this.difficulty === 'medium') {
-                searchDepth = 16;
+                searchDepth = 20;
+                moveTimeMs = 900;
+                skillLevel = 14;
             } else if (this.difficulty === 'hard') {
                 searchDepth = 30;
+                moveTimeMs = 2000;
+                skillLevel = 18;
             } else if (this.difficulty === 'insane') {
                 searchDepth = 36;
+                moveTimeMs = 3500;
+                skillLevel = 20;
             }
 
             const pollInterval = setInterval(() => {
@@ -77,7 +108,9 @@ class ChessAI {
             }, 30000); // 30 second timeout
 
             this.stockfish.postMessage(`position fen ${fen}`);
-            this.stockfish.postMessage(`go depth ${searchDepth}`);
+            this.stockfish.postMessage('setoption name UCI_LimitStrength value false');
+            this.stockfish.postMessage(`setoption name Skill Level value ${skillLevel}`);
+            this.stockfish.postMessage(`go depth ${searchDepth} movetime ${moveTimeMs}`);
         });
     }
 
@@ -118,6 +151,14 @@ ai.init().catch(err => console.error('Failed to initialize AI:', err));
 class SimpleAI {
     constructor() {
         this.difficulty = 'medium';
+        this.pieceValues = {
+            p: 100,
+            n: 320,
+            b: 330,
+            r: 500,
+            q: 900,
+            k: 20000
+        };
     }
 
     setDifficulty(level) {
@@ -127,131 +168,148 @@ class SimpleAI {
     getBestMove(fen) {
         const game = new Chess(fen);
         const moves = game.moves({ verbose: true });
-        const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
         if (moves.length === 0) {
             return null;
         }
 
         if (this.difficulty === 'easy') {
-            // Random move
-            const randomMove = moves[Math.floor(Math.random() * moves.length)];
-            return randomMove.from + randomMove.to;
-        }
-
-        if (this.difficulty === 'medium') {
-            // More selective than easy: prefers higher-value captures and forcing moves.
-            const scoredMoves = moves.map(m => {
-                let score = Math.random() * 0.75;
-
-                if (m.captured) {
-                    score += (pieceValues[m.captured] || 0) * 2.4;
-                }
-
-                const testGame = new Chess(fen);
-                testGame.move(`${m.from}${m.to}`, { sloppy: true });
-
-                if (testGame.in_check()) {
-                    score += 3.5;
-                }
-
-                return { move: m, score };
-            });
-
+            const scoredMoves = moves.map(move => ({
+                move,
+                score: this.scoreMove(game, move) + Math.random() * 40
+            }));
             scoredMoves.sort((a, b) => b.score - a.score);
-            const move = scoredMoves[0].move;
-            return move.from + move.to;
+            const topChoices = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
+            const selected = topChoices[Math.floor(Math.random() * topChoices.length)].move;
+            return selected.from + selected.to + (selected.promotion || '');
         }
 
-        if (this.difficulty === 'hard') {
-            // Stronger fallback: heavily values material gain and forcing moves.
-            const scoredMoves = moves.map(m => {
-                let score = Math.random() * 0.35;
+        const searchDepth = typeof getConfig === 'function'
+            ? getConfig(`difficulty.fallbackDepth.${this.difficulty}`, 2)
+            : 2;
+        const maximizingColor = game.turn();
+        let bestScore = -Infinity;
+        let bestMove = moves[0];
+        let alpha = -Infinity;
+        let beta = Infinity;
 
-                if (m.captured) {
-                    score += (pieceValues[m.captured] || 0) * 4;
-                }
+        const orderedMoves = moves
+            .map(move => ({ move, orderScore: this.scoreMove(game, move) }))
+            .sort((a, b) => b.orderScore - a.orderScore)
+            .map(entry => entry.move);
 
-                const testGame = new Chess(fen);
-                testGame.move(`${m.from}${m.to}`, { sloppy: true });
-                
-                if (testGame.in_check()) {
-                    score += 6;
-                }
+        for (const move of orderedMoves) {
+            const nextGame = new Chess(fen);
+            nextGame.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
 
-                if (m.piece) {
-                    score += pieceValues[m.piece] * 0.15;
-                }
+            const score = this.minimax(nextGame, searchDepth - 1, alpha, beta, false, maximizingColor);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
 
-                return { move: m, score };
-            });
-
-            scoredMoves.sort((a, b) => b.score - a.score);
-            const bestMove = scoredMoves[0].move;
-            return bestMove.from + bestMove.to;
+            alpha = Math.max(alpha, bestScore);
         }
 
-        if (this.difficulty === 'insane') {
-            const evaluateMaterial = chessGame => {
-                let score = 0;
-                const board = chessGame.board();
+        return bestMove.from + bestMove.to + (bestMove.promotion || '');
+    }
 
-                for (const row of board) {
-                    for (const piece of row) {
-                        if (!piece) {
-                            continue;
-                        }
-                        const value = pieceValues[piece.type] || 0;
-                        score += piece.color === game.turn() ? value : -value;
-                    }
-                }
-
-                return score;
-            };
-
-            const scoredMoves = moves.map(m => {
-                const nextGame = new Chess(fen);
-                nextGame.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' });
-
-                let score = evaluateMaterial(nextGame);
-
-                if (m.captured) {
-                    score += (pieceValues[m.captured] || 0) * 5;
-                }
-
-                if (nextGame.in_check()) {
-                    score += 7;
-                }
-
-                const opponentReplies = nextGame.moves({ verbose: true });
-                if (opponentReplies.length > 0) {
-                    const replyPenalty = opponentReplies.reduce((worst, reply) => {
-                        let penalty = 0;
-                        if (reply.captured) {
-                            penalty += (pieceValues[reply.captured] || 0) * 3;
-                        }
-
-                        const replyGame = new Chess(nextGame.fen());
-                        replyGame.move({ from: reply.from, to: reply.to, promotion: reply.promotion || 'q' });
-                        if (replyGame.in_check()) {
-                            penalty += 4;
-                        }
-
-                        return Math.max(worst, penalty);
-                    }, 0);
-
-                    score -= replyPenalty;
-                }
-
-                return { move: m, score };
-            });
-
-            scoredMoves.sort((a, b) => b.score - a.score);
-            const bestMove = scoredMoves[0].move;
-            return bestMove.from + bestMove.to;
+    minimax(game, depth, alpha, beta, maximizingPlayer, maximizingColor) {
+        if (depth <= 0 || game.game_over()) {
+            return this.evaluatePosition(game, maximizingColor);
         }
 
-        return null;
+        const moves = game.moves({ verbose: true })
+            .map(move => ({ move, orderScore: this.scoreMove(game, move) }))
+            .sort((a, b) => b.orderScore - a.orderScore)
+            .map(entry => entry.move);
+
+        if (maximizingPlayer) {
+            let maxEval = -Infinity;
+            for (const move of moves) {
+                const nextGame = new Chess(game.fen());
+                nextGame.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+                const evaluation = this.minimax(nextGame, depth - 1, alpha, beta, false, maximizingColor);
+                maxEval = Math.max(maxEval, evaluation);
+                alpha = Math.max(alpha, evaluation);
+                if (beta <= alpha) {
+                    break;
+                }
+            }
+            return maxEval;
+        }
+
+        let minEval = Infinity;
+        for (const move of moves) {
+            const nextGame = new Chess(game.fen());
+            nextGame.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+            const evaluation = this.minimax(nextGame, depth - 1, alpha, beta, true, maximizingColor);
+            minEval = Math.min(minEval, evaluation);
+            beta = Math.min(beta, evaluation);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        return minEval;
+    }
+
+    evaluatePosition(game, maximizingColor) {
+        if (game.in_checkmate()) {
+            return game.turn() === maximizingColor ? -999999 : 999999;
+        }
+
+        if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) {
+            return 0;
+        }
+
+        let score = 0;
+        const board = game.board();
+
+        for (let rank = 0; rank < board.length; rank++) {
+            for (let file = 0; file < board[rank].length; file++) {
+                const piece = board[rank][file];
+                if (!piece) {
+                    continue;
+                }
+
+                const material = this.pieceValues[piece.type] || 0;
+                const centrality = (3.5 - Math.abs(3.5 - file)) + (3.5 - Math.abs(3.5 - rank));
+                const positional = centrality * 8;
+                const signedValue = material + positional;
+                score += piece.color === maximizingColor ? signedValue : -signedValue;
+            }
+        }
+
+        if (game.in_check()) {
+            score += game.turn() === maximizingColor ? -40 : 40;
+        }
+
+        return score;
+    }
+
+    scoreMove(game, move) {
+        let score = 0;
+
+        if (move.captured) {
+            score += (this.pieceValues[move.captured] || 0) - ((this.pieceValues[move.piece] || 0) / 10);
+        }
+
+        if (move.promotion) {
+            score += this.pieceValues[move.promotion] || 800;
+        }
+
+        const file = move.to.charCodeAt(0) - 97;
+        const rank = parseInt(move.to[1], 10) - 1;
+        score += ((3.5 - Math.abs(3.5 - file)) + (3.5 - Math.abs(3.5 - rank))) * 6;
+
+        const nextGame = new Chess(game.fen());
+        nextGame.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' });
+
+        if (nextGame.in_check()) {
+            score += 60;
+        }
+
+        return score;
     }
 
     getIsThinking() {

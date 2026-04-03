@@ -4,10 +4,28 @@ const GAME_CONFIG = {
     difficulty: {
         default: 'medium', // 'easy', 'medium', 'hard', 'insane'
         levels: {
-            easy: 10,     // Stockfish depth for easy
-            medium: 22,   // Stockfish depth for medium
-            hard: 30,     // Stockfish depth for hard
-            insane: 36    // Stockfish depth for insane
+            easy: 40,     // Stockfish depth for easy
+            medium: 60,   // Stockfish depth for medium
+            hard: 80,     // Stockfish depth for hard
+            insane: 100    // Stockfish depth for insane
+        },
+        stockfishSkill: {
+            easy: 6,
+            medium: 14,
+            hard: 18,
+            insane: 20
+        },
+        searchTimeMs: {
+            easy: 400,
+            medium: 1100,
+            hard: 2200,
+            insane: 4000
+        },
+        fallbackDepth: {
+            easy: 1,
+            medium: 2,
+            hard: 3,
+            insane: 4
         },
         undoLimits: {
             easy: 3,
