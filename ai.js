@@ -7,32 +7,72 @@ class ChessAI {
         this.isThinking = false;
         this.bestMove = null;
         this.workerReady = false;
+        this.available = false;
     }
 
     // Initialize Stockfish
     async init() {
         return new Promise((resolve) => {
-            this.stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+            if (typeof Worker !== 'function') {
+                this.isReady = false;
+                this.available = false;
+                resolve(false);
+                return;
+            }
+
+            try {
+                this.stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+            } catch (error) {
+                console.warn('Stockfish worker could not be created, falling back to built-in AI.', error);
+                this.stockfish = null;
+                this.isReady = false;
+                this.available = false;
+                resolve(false);
+                return;
+            }
+
+            let settled = false;
+            let readyCheck = null;
+            let timeoutId = null;
+
+            const finishInit = ready => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearInterval(readyCheck);
+                clearTimeout(timeoutId);
+                this.workerReady = ready;
+                this.available = ready;
+                this.isReady = ready;
+                if (!ready && this.stockfish) {
+                    this.stockfish.terminate();
+                    this.stockfish = null;
+                }
+                resolve(ready);
+            };
 
             this.stockfish.addEventListener('message', (e) => {
                 this.onMessage(e.data);
             });
 
+            this.stockfish.addEventListener('error', error => {
+                console.warn('Stockfish worker error, falling back to built-in AI.', error);
+                finishInit(false);
+            });
+
             this.stockfish.postMessage('uci');
 
-            const readyCheck = setInterval(() => {
+            readyCheck = setInterval(() => {
                 if (this.workerReady) {
-                    clearInterval(readyCheck);
-                    this.isReady = true;
-                    resolve();
+                    finishInit(true);
                 }
             }, 50);
 
-            setTimeout(() => {
+            timeoutId = setTimeout(() => {
                 if (!this.workerReady) {
-                    clearInterval(readyCheck);
-                    this.isReady = true;
-                    resolve();
+                    console.warn('Stockfish worker did not become ready in time, falling back to built-in AI.');
+                    finishInit(false);
                 }
             }, 1500);
         });
@@ -57,7 +97,7 @@ class ChessAI {
     // Get best move for current position
     getBestMove(fen, depth = 20) {
         return new Promise((resolve) => {
-            if (!this.stockfish) {
+            if (!this.stockfish || !this.available || !this.workerReady) {
                 resolve(null);
                 return;
             }
@@ -133,6 +173,10 @@ class ChessAI {
     // Check if AI is thinking
     getIsThinking() {
         return this.isThinking;
+    }
+
+    canUseEngine() {
+        return !!(this.stockfish && this.available && this.workerReady && this.isReady);
     }
 
     // Terminate stockfish worker

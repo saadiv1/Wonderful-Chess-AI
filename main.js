@@ -407,8 +407,6 @@ class ChessGame {
         this.isAIThinking = true;
         this.updateUI();
 
-        const currentAI = this.useStockfish && ai.isReady ? ai : fallbackAI;
-
         try {
             const timedDelay = this.getTimedAIMoveDelay();
             if (timedDelay > 0) {
@@ -421,7 +419,14 @@ class ChessGame {
                 return;
             }
 
-            const aiMove = await currentAI.getBestMove(engine.getFEN());
+            const preferredAI = this.useStockfish && typeof ai.canUseEngine === 'function' && ai.canUseEngine()
+                ? ai
+                : fallbackAI;
+            let aiMove = await preferredAI.getBestMove(engine.getFEN());
+
+            if (!aiMove && preferredAI !== fallbackAI) {
+                aiMove = await fallbackAI.getBestMove(engine.getFEN());
+            }
 
             if (aiMove && aiMove.length >= 4 && this.gameActive) {
                 const from = aiMove.substring(0, 2);
