@@ -406,6 +406,7 @@ main {
     width: var(--board-size);
     aspect-ratio: 1;
     box-shadow: 0 16px 30px rgba(0, 0, 0, 0.12);
+    touch-action: manipulation;
 }
 
 .square {
@@ -419,6 +420,7 @@ main {
     font-size: clamp(30px, 5.4vw, 60px);
     user-select: none;
     transition: background 0.2s ease, filter 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .square:hover {
@@ -470,6 +472,7 @@ main {
     height: 100%;
     cursor: grab;
     transition: transform 0.1s ease;
+    pointer-events: none;
 }
 
 .piece:active {

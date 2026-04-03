@@ -224,7 +224,10 @@ class ChessGame {
                     square.appendChild(this.createPieceElement(piece));
                 }
 
-                square.addEventListener('click', () => {
+                square.addEventListener('pointerup', event => {
+                    if (event.pointerType === 'mouse' && event.button !== 0) {
+                        return;
+                    }
                     this.handleSquareClick(squareName, engine.getPieceAt(squareName));
                 });
 
@@ -922,12 +925,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 });
-
-document.addEventListener('touchstart', event => {
-    if (event.target.classList.contains('square')) {
-        event.preventDefault();
-    }
-}, { passive: false });
 
 document.addEventListener('wheel', event => {
     if (event.ctrlKey) {
