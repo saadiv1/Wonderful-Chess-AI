@@ -465,6 +465,7 @@ main {
 }
 
 .piece {
+    --piece-scale: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -472,12 +473,13 @@ main {
     height: 100%;
     cursor: grab;
     transition: transform 0.1s ease;
+    transform: scale(var(--piece-scale));
     pointer-events: none;
 }
 
 .piece:active {
     cursor: grabbing;
-    transform: scale(1.06);
+    transform: scale(calc(var(--piece-scale) * 1.06));
 }
 
 .piece.white {
@@ -963,6 +965,19 @@ footer {
         font-size: clamp(24px, 8vw, 46px);
     }
 
+    .square .piece.black.piece-p {
+        --piece-scale: 1.12;
+    }
+
+    .square .piece.black {
+        color: #18212f;
+        text-shadow: none;
+    }
+
+    .square .piece.white {
+        --piece-scale: 1.08;
+    }
+
     .game-sidebar {
         padding: 12px;
     }
@@ -1011,6 +1026,19 @@ footer {
 
     .square {
         font-size: clamp(20px, 8.2vw, 36px);
+    }
+
+    .square .piece.black.piece-p {
+        --piece-scale: 1.14;
+    }
+
+    .square .piece.black {
+        color: #18212f;
+        text-shadow: none;
+    }
+
+    .square .piece.white {
+        --piece-scale: 1.12;
     }
 
     .button-group {

@@ -240,7 +240,7 @@ class ChessGame {
 
     createPieceElement(piece) {
         const pieceEl = document.createElement('div');
-        pieceEl.className = `piece ${piece.color === 'w' ? 'white' : 'black'}`;
+        pieceEl.className = `piece ${piece.color === 'w' ? 'white' : 'black'} piece-${piece.color} piece-${piece.type}`;
         pieceEl.textContent = this.pieceUnicode[`${piece.color}${piece.type}`] || '';
         return pieceEl;
     }
@@ -273,7 +273,7 @@ class ChessGame {
             button.type = 'button';
             button.className = 'promotion-btn';
             button.dataset.promotion = type;
-            button.innerHTML = `<span class="piece ${color === 'w' ? 'white' : 'black'}">${this.pieceUnicode[`${color}${type}`]}</span><span>${labels[type]}</span>`;
+            button.innerHTML = `<span class="piece ${color === 'w' ? 'white' : 'black'} piece-${color} piece-${type}">${this.pieceUnicode[`${color}${type}`]}</span><span>${labels[type]}</span>`;
             button.addEventListener('click', () => this.completePromotion(type));
             options.appendChild(button);
         });
@@ -533,7 +533,7 @@ class ChessGame {
         }
 
         return pieces
-            .map(piece => `<span class="piece ${color === 'w' ? 'white' : 'black'}">${this.pieceUnicode[`${color}${piece}`] || ''}</span>`)
+            .map(piece => `<span class="piece ${color === 'w' ? 'white' : 'black'} piece-${color} piece-${piece}">${this.pieceUnicode[`${color}${piece}`] || ''}</span>`)
             .join(' ');
     }
 
