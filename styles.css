@@ -882,6 +882,13 @@ footer {
     font-size: 2rem;
 }
 
+@media (min-width: 769px) {
+    .square .piece.black {
+        color: #18212f;
+        text-shadow: none;
+    }
+}
+
 @media (max-width: 1200px) {
     :root {
         --board-size: min(calc(100vh - 150px), calc(100vw - 430px), 980px);
@@ -965,16 +972,12 @@ footer {
         font-size: clamp(24px, 8vw, 46px);
     }
 
-    .square .piece.black.piece-p {
-        --piece-scale: 1.12;
-    }
-
     .square .piece.black {
         color: #18212f;
         text-shadow: none;
     }
 
-    .square .piece.white {
+    .square .piece {
         --piece-scale: 1.08;
     }
 
@@ -1028,16 +1031,12 @@ footer {
         font-size: clamp(20px, 8.2vw, 36px);
     }
 
-    .square .piece.black.piece-p {
-        --piece-scale: 1.14;
-    }
-
     .square .piece.black {
         color: #18212f;
         text-shadow: none;
     }
 
-    .square .piece.white {
+    .square .piece {
         --piece-scale: 1.12;
     }
 
